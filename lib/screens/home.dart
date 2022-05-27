@@ -1,7 +1,9 @@
+import 'package:bluetoothtest/controllers/bluetooth_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class Home extends StatelessWidget {
-  const Home({Key? key}) : super(key: key);
+  Home({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +12,11 @@ class Home extends StatelessWidget {
         title: Text('BlueTest'),
         leading: IconButton(onPressed: () {}, icon: Icon(Icons.refresh)),
         actions: [
-          IconButton(onPressed: () {}, icon: Icon(Icons.bluetooth_connected)),
+          IconButton(
+              onPressed: () async {
+                await Get.find<BlueController>().startScan();
+              },
+              icon: Icon(Icons.bluetooth_connected)),
           IconButton(onPressed: () {}, icon: Icon(Icons.bluetooth_disabled)),
         ],
       ),

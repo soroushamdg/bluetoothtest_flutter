@@ -1,14 +1,17 @@
 import 'package:get/get.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:bluetoothtest/constants/uuidbank.dart';
 
 class BlueController extends GetxController {
   FlutterBlue flutterBlue = FlutterBlue.instance;
 
   BluetoothDevice? device;
 
-  void startScan() {
+  List<BluetoothService> services = [];
+
+  Future<void> startScan() async {
     // Start scanning
-    flutterBlue.startScan(timeout: Duration(seconds: 4));
+    await flutterBlue.startScan(timeout: Duration(seconds: 4));
   }
 
   List<String> listResultScan() {
@@ -44,6 +47,21 @@ class BlueController extends GetxController {
         if (device is Null) {
           throw 'Couldn\'t find the device';
         }
+      });
+      return Future<bool>.value(true);
+    } on Exception catch (e) {
+      print(e);
+      return Future<bool>.value(false);
+    }
+  }
+
+  Future<bool> searchforservices() async {
+    try {
+      if (device is Null) throw 'no connected to the device';
+      services = await device!.discoverServices();
+      services.forEach((service) {
+        // do something with service
+        print(service.uuid);
       });
       return Future<bool>.value(true);
     } on Exception catch (e) {
