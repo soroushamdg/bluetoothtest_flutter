@@ -68,7 +68,9 @@ class BlueController extends GetxController {
   }
 
   Future<bool> searchforservices() async {
+    print("searching for services");
     try {
+      print(device);
       if (device == null) throw 'no connected to the device';
       services.value = await device!.discoverServices();
       services.forEach((service) {

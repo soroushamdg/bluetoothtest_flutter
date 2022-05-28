@@ -1,5 +1,6 @@
 import 'package:bluetoothtest/controllers/bluetooth_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 import 'package:get/get.dart';
 
 class Home extends StatelessWidget {
@@ -24,7 +25,7 @@ class Home extends StatelessWidget {
                       await Future.delayed(const Duration(seconds: 2), () {});
                       List<String> results =
                           Get.find<BlueController>().scanneddevices;
-                      showModalBottomSheet(
+                      await showModalBottomSheet(
                           context: context,
                           builder: (context) {
                             return Container(
@@ -76,6 +77,9 @@ class Home extends StatelessWidget {
                               ),
                             );
                           });
+                      await Future.delayed(Duration(seconds: 2));
+
+                      await Get.find<BlueController>().searchforservices();
                     },
                     icon: Icon(Icons.bluetooth_connected));
           }),
@@ -92,6 +96,16 @@ class Home extends StatelessWidget {
         ],
       ),
       body: Column(children: [
+        Obx(() => Expanded(
+            child: ListView.builder(
+                itemCount: Get.find<BlueController>().services.length,
+                itemBuilder: (context, index) {
+                  BluetoothService srv =
+                      Get.find<BlueController>().services.value[index];
+                  return ListTile(
+                    title: Text("Service uuid : ${srv.uuid}"),
+                  );
+                }))),
         MaterialButton(onPressed: () {}),
         MaterialButton(onPressed: () {}),
         MaterialButton(onPressed: () {}),
