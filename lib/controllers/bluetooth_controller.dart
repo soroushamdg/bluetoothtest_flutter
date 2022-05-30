@@ -13,6 +13,73 @@ class BlueController extends GetxController {
 
   List<String> scanneddevices = [];
 
+  BluetoothService? batteryService;
+  BluetoothCharacteristic? batteryChar;
+  RxBool batteryServiceReady = false.obs;
+  void checkBatteryService() async {
+    if (batteryService != null && batteryChar != null) {
+      await Future.delayed(Duration(seconds: 1));
+      if (!await batteryChar!.value.isEmpty) {
+        batteryServiceReady.value = true;
+      } else {
+        batteryServiceReady.value = false;
+      }
+    } else {
+      batteryServiceReady.value = false;
+    }
+  }
+
+  void resetBatteryService() {
+    batteryService = null;
+    batteryChar = null;
+    checkBatteryService();
+  }
+
+  BluetoothService? pedometerService;
+  BluetoothCharacteristic? pedometerChar;
+  RxBool pedometerServiceReady = false.obs;
+  void checkPedometerService() async {
+    if (pedometerService != null && pedometerChar != null) {
+      await Future.delayed(Duration(seconds: 1));
+
+      if (!await pedometerChar!.value.isEmpty) {
+        pedometerServiceReady.value = true;
+      } else {
+        pedometerServiceReady.value = false;
+      }
+    } else {
+      pedometerServiceReady.value = false;
+    }
+  }
+
+  void resetPedometerService() {
+    pedometerService = null;
+    pedometerChar = null;
+    checkPedometerService();
+  }
+
+  BluetoothService? ledService;
+  BluetoothCharacteristic? ledChar;
+  RxBool ledServiceReady = false.obs;
+  void checkLEDService() async {
+    if (ledService != null && ledChar != null) {
+      await Future.delayed(Duration(seconds: 1));
+      if (!await ledChar!.value.isEmpty) {
+        ledServiceReady.value = true;
+      } else {
+        ledServiceReady.value = false;
+      }
+    } else {
+      ledServiceReady.value = false;
+    }
+  }
+
+  void resetLEDService() {
+    ledService = null;
+    ledChar = null;
+    checkLEDService();
+  }
+
   Future<void> startScan() async {
     // Start scanning
     await flutterBlue.startScan(timeout: Duration(seconds: 4));
@@ -71,12 +138,49 @@ class BlueController extends GetxController {
     print("searching for services");
     try {
       print(device);
-      if (device == null) throw 'no connected to the device';
+      if (device == null) throw 'not connected to the device';
+
+      print(device!.id);
       services.value = await device!.discoverServices();
       services.forEach((service) {
         // do something with service
-        print(service.uuid);
+        print("s : --${service.uuid}");
+        if (service.uuid == UUIDBANK.BATTERYLEVEL_SERVICE_UUID) {
+          batteryService = service;
+          print("SET BATTERY SERVICE");
+        }
+        if (service.uuid == UUIDBANK.PHYSICALACTIVITYMONITOR_SERVICE_UUID) {
+          pedometerService = service;
+        }
+        if (service.uuid == UUIDBANK.LEDCONTROLLER_SERVICE_UUID) {
+          ledService = service;
+        }
+        for (BluetoothCharacteristic characteristic
+            in service.characteristics) {
+          if (characteristic.uuid == UUIDBANK.BATTERYLEVEL_CAR_UUID) {
+            batteryChar = characteristic;
+            print("SET BATTERY CHARS");
+          }
+          if (characteristic.uuid == UUIDBANK.STEPCOUNTER_CAR_UUID) {
+            pedometerChar = characteristic;
+            pedometerChar!.setNotifyValue(true);
+          }
+          if (characteristic.uuid == UUIDBANK.LEDCONTROLLER_CAR_UUID) {
+            ledChar = characteristic;
+          }
+          for (BluetoothDescriptor descriptor in characteristic.descriptors) {
+            print("d : ---- ${descriptor.value}");
+          }
+          print(
+              "c ------ ${characteristic.uuid} : ${characteristic.value.listen((event) {
+            print(event);
+          })}");
+        }
       });
+      checkBatteryService();
+      checkPedometerService();
+      checkLEDService();
+
       return Future<bool>.value(true);
     } on Exception catch (e) {
       print(e);
@@ -88,6 +192,23 @@ class BlueController extends GetxController {
     await device!.disconnect();
     device = null;
     isConnected.value = false;
+    resetBatteryService();
+    resetLEDService();
+    resetPedometerService();
+
     return;
   }
+
+  // Future<void> selectedServiceCharacteristics() async {
+  //   if (selectedService == null) return Future<void>.value(null);
+  //
+  //   // Reads all characteristics
+  //   var characteristics = selectedService!.characteristics;
+  //   for (BluetoothCharacteristic c in characteristics) {
+  //     List<int> value = await c.read();
+  //     print(value);
+  //   }
+  //
+  //   return Future<void>.value(null);
+  // }
 }

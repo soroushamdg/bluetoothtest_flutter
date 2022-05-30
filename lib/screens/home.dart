@@ -2,6 +2,16 @@ import 'package:bluetoothtest/controllers/bluetooth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:get/get.dart';
+import 'dart:math';
+
+int hexSnapshot2Dec(List<int> data) {
+  int result = 0;
+
+  data.reversed.toList().asMap().forEach((int index, int value) {
+    result += (value * pow(16, index * 2).toInt());
+  });
+  return result;
+}
 
 class Home extends StatelessWidget {
   Home({Key? key}) : super(key: key);
@@ -96,20 +106,119 @@ class Home extends StatelessWidget {
         ],
       ),
       body: Column(children: [
-        Obx(() => Expanded(
-            child: ListView.builder(
-                itemCount: Get.find<BlueController>().services.length,
-                itemBuilder: (context, index) {
-                  BluetoothService srv =
-                      Get.find<BlueController>().services.value[index];
-                  return ListTile(
-                    title: Text("Service uuid : ${srv.uuid}"),
-                  );
-                }))),
-        MaterialButton(onPressed: () {}),
-        MaterialButton(onPressed: () {}),
-        MaterialButton(onPressed: () {}),
-        MaterialButton(onPressed: () {}),
+        Obx(() {
+          if (Get.find<BlueController>().isConnected.value) {
+            return Container(
+              child: Column(
+                children: [
+                  Obx(() {
+                    if (Get.find<BlueController>().batteryServiceReady.value) {
+                      return StreamBuilder<List<int>>(
+                          initialData: const [0],
+                          stream: Get.find<BlueController>().batteryChar?.value,
+                          builder: (BuildContext context,
+                                  AsyncSnapshot<List<int>> snapshot) =>
+                              Text("Battery value : ${snapshot.data!.last}"));
+                    } else {
+                      return Text("No battery value.");
+                    }
+                  }),
+                  Obx(() {
+                    if (Get.find<BlueController>()
+                        .pedometerServiceReady
+                        .value) {
+                      return StreamBuilder<List<int>>(
+                          initialData: const [0],
+                          stream:
+                              Get.find<BlueController>().pedometerChar?.value,
+                          builder: (BuildContext context,
+                                  AsyncSnapshot<List<int>> snapshot) =>
+                              Text(
+                                  "Pedometer value : ${hexSnapshot2Dec(snapshot.data!)}"));
+                    } else {
+                      return Text("No pedometer value.");
+                    }
+                  }),
+                  Obx(() {
+                    if (Get.find<BlueController>().ledServiceReady.value) {
+                      return StreamBuilder<List<int>>(
+                          initialData: const [0],
+                          stream: Get.find<BlueController>().ledChar?.value,
+                          builder: (BuildContext context,
+                                  AsyncSnapshot<List<int>> snapshot) =>
+                              Text(
+                                  "LED value : ${String.fromCharCodes(snapshot.data!)}"));
+                    } else {
+                      return Text("No LED value.");
+                    }
+                  }),
+                ],
+              ),
+            );
+          } else {
+            return Text("Not connected to the device!");
+          }
+        }),
+        MaterialButton(
+          onPressed: () async {
+            await Get.find<BlueController>().batteryChar?.read();
+          },
+          child: Text("Refresh battery"),
+        ),
+        MaterialButton(
+          onPressed: () async {
+            await Get.find<BlueController>().pedometerChar?.read();
+          },
+          child: Text("Refresh pedo"),
+        ),
+        MaterialButton(
+          onPressed: () async {
+            await Get.find<BlueController>().ledChar?.read();
+          },
+          child: Text("Refresh LED"),
+        ),
+        MaterialButton(
+          onPressed: () async {
+            String cmd = "";
+            await Get.defaultDialog(
+              title: 'Enter the command : ',
+              content: TextField(
+                onChanged: (value) {
+                  cmd = value;
+                },
+                decoration: InputDecoration(hintText: "Enter the commmand : "),
+              ),
+              actions: <Widget>[
+                MaterialButton(
+                  color: Colors.red,
+                  textColor: Colors.white,
+                  child: Text('CANCEL'),
+                  onPressed: () {
+                    cmd = "";
+                    Get.back();
+                  },
+                ),
+                MaterialButton(
+                  color: Colors.green,
+                  textColor: Colors.white,
+                  child: Text('OK'),
+                  onPressed: () {
+                    Get.back();
+                  },
+                ),
+              ],
+            );
+
+            if (!cmd.isEmpty) {
+              await Get.find<BlueController>().ledChar?.write(cmd.codeUnits);
+              print("SENDING COMMAND -> ${cmd}");
+              await Get.find<BlueController>().ledChar?.read();
+            } else {
+              Get.snackbar('Error', 'Empty command!');
+            }
+          },
+          child: Text("Set LED"),
+        ),
       ]),
     );
   }
